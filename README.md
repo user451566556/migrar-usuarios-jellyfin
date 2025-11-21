@@ -33,6 +33,7 @@ actualizar_politicas.py: Reactiva los permisos de los usuarios mediante la API.
 Abre una terminal en la carpeta de los scripts y ejecuta:
 Windows:
 python restaurar_usuarios.py --source "C:\Ruta\BackupViejo\jellyfin.db" --dest "C:\ProgramData\Jellyfin\Server\data\jellyfin.db" --migrate-userdatas --userdatas "C:\Ruta\userdatas.csv" --backup
+
 Linux:
 sudo python3 /ruta/restaurar_usuarios.py \
 --source "/ruta/jellyfin.db" \
