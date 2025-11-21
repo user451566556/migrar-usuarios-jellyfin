@@ -1,0 +1,106 @@
+#!/usr/bin/env python3
+
+import requests
+import json
+import logging
+
+# ---------------------------------------
+# CONFIGURACIÓN – EDITA ESTOS VALORES
+# ---------------------------------------
+JELLYFIN_URL = "http://ip:8096"
+API_KEY = "apiaqui"
+# ---------------------------------------
+
+logger = logging.getLogger("users_policy")
+logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
+
+
+def aplicar_politica_api(jellyfin_url, api_key):
+    logger.info("Aplicando política Jellyfin vía API...")
+
+    headers = {"X-Emby-Token": api_key}
+    users_url = f"{jellyfin_url}/Users"
+
+    try:
+        users = requests.get(users_url, headers=headers, timeout=10).json()
+    except Exception as e:
+        logger.error(f"Error obteniendo usuarios vía API: {e}")
+        return
+
+    politica = {
+        "IsAdministrator": False,
+        "IsHidden": True,
+        "EnableCollectionManagement": False,
+        "EnableSubtitleManagement": False,
+        "EnableLyricManagement": False,
+        "IsDisabled": False,
+        "BlockedTags": [],
+        "AllowedTags": [],
+        "EnableUserPreferenceAccess": True,
+        "AccessSchedules": [],
+        "BlockUnratedItems": [],
+        "EnableRemoteControlOfOtherUsers": False,
+        "EnableSharedDeviceControl": True,
+        "EnableRemoteAccess": True,
+        "EnableLiveTvManagement": True,
+        "EnableLiveTvAccess": True,
+        "EnableMediaPlayback": True,
+        "EnableAudioPlaybackTranscoding": True,
+        "EnableVideoPlaybackTranscoding": True,
+        "EnablePlaybackRemuxing": True,
+        "ForceRemoteSourceTranscoding": False,
+        "EnableContentDeletion": False,
+        "EnableContentDeletionFromFolders": [],
+        "EnableContentDownloading": True,
+        "EnableSyncTranscoding": True,
+        "EnableMediaConversion": True,
+        "EnabledDevices": [],
+        "EnableAllDevices": True,
+        "EnabledChannels": [],
+        "EnableAllChannels": False,
+        "EnabledFolders": [],
+        "EnableAllFolders": True,
+        "InvalidLoginAttemptCount": 0,
+        "LoginAttemptsBeforeLockout": -1,
+        "MaxActiveSessions": 0,
+        "EnablePublicSharing": True,
+        "BlockedMediaFolders": [],
+        "BlockedChannels": [],
+        "RemoteClientBitrateLimit": 0,
+        "AuthenticationProviderId": "Jellyfin.Server.Implementations.Users.DefaultAuthenticationProvider",
+        "PasswordResetProviderId": "Jellyfin.Server.Implementations.Users.DefaultPasswordResetProvider",
+        "SyncPlayAccess": "CreateAndJoinGroups"
+    }
+
+    for user in users:
+        user_id = user["Id"]
+        name = user["Name"]
+        is_admin = user.get("Policy", {}).get("IsAdministrator", False)
+
+        if is_admin:
+            logger.info(f"Omitiendo admin: {name}")
+            continue
+
+        logger.info(f"Aplicando política al usuario: {name}")
+
+        policy_url = f"{jellyfin_url}/Users/{user_id}/Policy"
+
+        try:
+            r = requests.post(
+                policy_url,
+                headers={**headers, "Content-Type": "application/json"},
+                data=json.dumps(politica),
+                timeout=10
+            )
+
+            if r.status_code in (200, 204):
+                logger.info(f"Política aplicada a {name}.")
+            else:
+                logger.error(f"Error {r.status_code} aplicando a {name}: {r.text}")
+
+        except Exception as e:
+            logger.error(f"Excepción aplicando política a {name}: {e}")
+
+
+if __name__ == "__main__":
+    aplicar_politica_api(JELLYFIN_URL, API_KEY)
